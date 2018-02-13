@@ -10,7 +10,7 @@ get '/ls/*' do
   path = params['splat'][0].gsub("/ls/", "")
   results = []
   Dir.entries("#{HOMEDIR}/#{path}").each do |f| 
-    results << { :name => f, :isDir => File.directory?("#{HOMEDIR}/#{path}/#{f}") } unless f == "." || f == ".."
+    results << { :name => f, :parentDir => path, :isDir => File.directory?("#{HOMEDIR}/#{path}/#{f}") } unless f == "." || f == ".."
   end
   headers "Content-Type" => "application/json"
   return results.to_json
