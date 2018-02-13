@@ -3,14 +3,14 @@ require 'json'
 require 'fileutils'
 
 configure { set :server, :thin }
-
-HOMEDIR = "/Users/aaron/Downloads/specimen"
+configure { set :bind, '0.0.0.0' }
+HOMEDIR = "/home/webserver/projects"
 
 get '/ls/*' do
   path = params['splat'][0].gsub("/ls/", "")
   results = []
   Dir.entries("#{HOMEDIR}/#{path}").each do |f| 
-    results << { :name => f, :isDir => File.directory?("#{HOMEDIR}/#{path}/#{f}") }
+    results << { :name => f, :isDir => File.directory?("#{HOMEDIR}/#{path}/#{f}") } unless f == "." || f == ".."
   end
   headers "Content-Type" => "application/json"
   return results.to_json
