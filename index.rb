@@ -91,6 +91,15 @@ post '/write/*' do
   end
 end
 
+put '/upload/*' do
+  path = params['splat'][0].gsub("/upload/", "")
+  path = "#{HOMEDIR}/#{path}"
+  file = params[:file][:tempfile]
+  File.open(path, 'wb') do |f|
+      f.write(file.read)
+    end
+end
+
 post '/cp' do
   args = JSON.parse request.body.read
   source = args["source"]
