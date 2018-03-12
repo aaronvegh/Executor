@@ -91,12 +91,12 @@ post '/write/*' do
   end
 end
 
-put '/upload/*' do
+post '/upload/*' do
   path = params['splat'][0].gsub("/upload/", "")
   path = "#{HOMEDIR}/#{path}"
-  file = params[:file][:tempfile]
   File.open(path, 'wb') do |f|
-      f.write(file.read)
+      f.write(request.body.read)
+      return 200
     end
 end
 
