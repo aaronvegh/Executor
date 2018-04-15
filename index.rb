@@ -5,7 +5,7 @@ require 'cgi'
 
 configure { set :server, :thin }
 configure { set :bind, '0.0.0.0' }
-HOMEDIR = "/home/webserver/projects"
+HOMEDIR = File.expand_path(File.dirname(__FILE__)).gsub!("Executor", "projects")
 
 get '/ls/*' do
   path = params['splat'][0].gsub("/ls/", "")
