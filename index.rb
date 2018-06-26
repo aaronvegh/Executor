@@ -2,6 +2,7 @@ require 'sinatra'
 require 'json'
 require 'fileutils'
 require 'cgi'
+require 'digest'
 
 configure { set :server, :thin }
 configure { set :bind, '0.0.0.0' }
@@ -16,7 +17,10 @@ get '/ls/*' do
       isDir = File.directory?("#{HOMEDIR}/#{path}/#{f}")
       mtime = isDir ? 0 : File.mtime("#{HOMEDIR}/#{path}/#{f}").to_i
       resolved_path = path == "" ? nil : path
-      results << { :name => f, :parentDir => resolved_path, :mtime => mtime, :isDir => isDir } unless f == "." || f == ".."
+      content = f
+      content << File.read "#{HOMEDIR}/#{path}/#{f}"
+      hash = Digest::SHA256.hexdigest content
+      results << { :name => f, :parentDir => resolved_path, :md5 => hash, :mtime => mtime, :isDir => isDir } unless f == "." || f == ".."
     end
   else
     return 404
