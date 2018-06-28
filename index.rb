@@ -90,13 +90,9 @@ end
 post '/write/*' do
   path = params['splat'][0].gsub("/write/", "")
   path = "#{HOMEDIR}/#{path}"
-  if File.exist? path
-    content = request.body.read
-    IO.write(path, content)
-    return 200
-  else
-    return 404
-  end
+  content = request.body.read
+  IO.write(path, content)
+  return 200
 end
 
 post '/upload/*' do
