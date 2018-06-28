@@ -13,13 +13,17 @@ get '/ls/*' do
   results = []
   fullPath = "#{HOMEDIR}/#{path}"
   if File.directory? fullPath
-    Dir.entries("#{HOMEDIR}/#{path}").each do |f| 
-      isDir = File.directory?("#{HOMEDIR}/#{path}/#{f}")
-      mtime = isDir ? 0 : File.mtime("#{HOMEDIR}/#{path}/#{f}").to_i
-      toHash = isDir ? "#{HOMEDIR}/#{path}/#{f}" : "#{f}#{File.read("#{HOMEDIR}/#{path}/#{f}", "r")}"
-      hash = Digest::SHA256.hexdigest toHash
-      resolved_path = path == "" ? nil : path
-      results << { :name => f, :parentDir => resolved_path, :md5 => hash, :mtime => mtime, :isDir => isDir } unless f == "." || f == ".."
+    Dir.entries("#{HOMEDIR}/#{path}").each do |f|
+      if f != "."
+        if f != ".."
+          isDir = File.directory?("#{HOMEDIR}/#{path}/#{f}")
+          mtime = isDir ? 0 : File.mtime("#{HOMEDIR}/#{path}/#{f}").to_i
+          toHash = isDir ? "#{HOMEDIR}/#{path}/#{f}" : "#{f}#{File.read("#{HOMEDIR}\/#{path}\/#{f}")}"
+          hash = Digest::SHA256.hexdigest toHash
+          resolved_path = path == "" ? nil : path
+          results << { :name => f, :parentDir => resolved_path, :md5 => hash, :mtime => mtime, :isDir => isDir }
+        end
+      end
     end
   else
     return 404
@@ -27,6 +31,7 @@ get '/ls/*' do
   headers "Content-Type" => "application/json"
   return results.to_json
 end
+
 
 get '/touch/*' do
   path = params['splat'][0].gsub("/touch/", "")
