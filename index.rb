@@ -18,7 +18,7 @@ get '/ls/*' do
       mtime = isDir ? 0 : File.mtime("#{HOMEDIR}/#{path}/#{f}").to_i
       resolved_path = path == "" ? nil : path
       content = f
-      content << File.read "#{HOMEDIR}/#{path}/#{f}"
+      content << File.read("#{HOMEDIR}/#{path}/#{f}", "r")
       hash = Digest::SHA256.hexdigest content
       results << { :name => f, :parentDir => resolved_path, :md5 => hash, :mtime => mtime, :isDir => isDir } unless f == "." || f == ".."
     end
