@@ -3,10 +3,19 @@ require 'json'
 require 'fileutils'
 require 'cgi'
 require 'digest'
+require 'ptools'
+require 'pathname'
+require 'rest-client'
 
-configure { set :server, :thin }
+configure { set :port, 82 }
 configure { set :bind, '0.0.0.0' }
-HOMEDIR = File.expand_path(File.dirname(__FILE__)).gsub!("Executor", "projects")
+HOMEDIR = "/home/codewerks/project"
+
+before do
+  if protected == false
+    halt 403, {'Content-Type' => 'text/plain'}, 'Unauthorized'
+  end
+end
 
 get '/ls/*' do
   path = params['splat'][0].gsub("/ls/", "")
@@ -17,11 +26,16 @@ get '/ls/*' do
       if f != "."
         if f != ".."
           isDir = File.directory?("#{HOMEDIR}/#{path}/#{f}")
+          if !isDir 
+            isBinary = File.binary?("#{HOMEDIR}/#{path}/#{f}")
+          else
+            isBinary = false
+          end
           mtime = isDir ? 0 : File.mtime("#{HOMEDIR}/#{path}/#{f}").to_i
           toHash = isDir ? "#{HOMEDIR}/#{path}/#{f}" : "#{HOMEDIR}/#{path}/#{f}/#{File.read("#{HOMEDIR}\/#{path}\/#{f}")}"
           hash = Digest::SHA256.hexdigest toHash
           resolved_path = path == "" ? nil : path
-          results << { :name => f, :parentDir => resolved_path, :md5 => hash, :mtime => mtime, :isDir => isDir }
+          results << { :name => f, :parentDir => resolved_path, :md5 => hash, :mtime => mtime, :isDir => isDir, :isBinary => isBinary }
         end
       end
     end
@@ -32,6 +46,15 @@ get '/ls/*' do
   return results.to_json
 end
 
+get '/isdirty' do
+  path = Pathname.new("#{HOMEDIR}/../.is_dirty")
+  if File.exist? path
+    FileUtils.rm(path)
+    return 200
+  else
+    return 204
+  end
+end
 
 get '/touch/*' do
   path = params['splat'][0].gsub("/touch/", "")
@@ -78,10 +101,20 @@ get '/rmdir/*' do
 end
 
 get '/read/*' do
-  path = params['splat'][0].gsub("/mkdir/", "")
+  path = params['splat'][0].gsub("/read/", "")
   path = "#{HOMEDIR}/#{path}"
   if File.exist? path
     return IO.read(path)
+  else
+    return 404
+  end
+end
+
+get '/binaryread/*' do
+  path = params['splat'][0].gsub("/binaryread", "")
+  fullpath = "#{HOMEDIR}/#{path}"
+  if File.exist? path
+    send_file path, :filename => path, :type => 'Application/octet-stream'
   else
     return 404
   end
@@ -137,5 +170,32 @@ post '/exec' do
   cmd = args["cmd"]
   stream do |out|
     out << `#{cmd}`
+  end
+end
+
+
+def protected
+  if authorized?
+    return true
+  else
+    return false
+  end
+end
+
+def bearer_token
+  pattern = /^Bearer /
+  header  = request.env["HTTP_AUTHORIZATION"] # <= env
+  header.gsub(pattern, '') if header && header.match(pattern)
+end
+
+# check the token to make sure it is valid with our public key
+def authorized?
+  @token = bearer_token
+  return false if @token == nil
+  begin
+    response = RestClient.get 'http://codewerks.app:81/users/valid', { :Authorization => "Bearer #{@token}" }
+    return true if response.code == 200
+  rescue RestClient::Forbidden
+    return false
   end
 end
