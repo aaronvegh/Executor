@@ -193,8 +193,13 @@ def authorized?
   @token = bearer_token
   return false if @token == nil
   begin
-    response = RestClient.get 'http://codewerks.app:81/users/valid', { :Authorization => "Bearer #{@token}" }
-    return true if response.code == 200
+    owner_token = `curl -s --unix-socket /dev/lxd/sock http://x/1.0/config/user.token`
+    if owner_token != nil && !owner_token.empty?
+      response = RestClient.get 'http://codewerks.app:81/users/valid', { :Authorization => "Bearer #{@token}" }
+      return true if response.code == 200 && response.body == owner_token
+    else
+      return false
+    end
   rescue RestClient::Forbidden
     return false
   end
